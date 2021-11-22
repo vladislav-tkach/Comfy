@@ -231,6 +231,27 @@ TEST(
     ASSERT_FALSE(tokens.has_value());
 }
 
+TEST(
+    TokenizerTest,
+    Tokenize_TwoSimilarEntriesTokenMap_StreamWithTokenInTheBeggining_LongestTokenTokenQueue)
+{
+    const auto type1  = std::string("Short token");
+    const auto regex1 = std::string("a");
+    const auto type2  = std::string("Long token");
+    const auto regex2 = std::string("aaaaaaaaaa");
+
+    const auto token_map = TokenMap({ { type1, regex1 }, { type2, regex2 } });
+    const auto tokenizer = Tokenizer(token_map);
+
+    auto stream = std::stringstream("aaaaaaaaaa");
+
+    auto tokens = tokenizer.Tokenize(stream);
+    ASSERT_TRUE(tokens.has_value());
+    ASSERT_EQ(1, tokens->size());
+    EXPECT_EQ("Long token", tokens->front().type);
+    EXPECT_EQ("aaaaaaaaaa", tokens->front().value);
+}
+
 TEST(TokenizerTest,
      Tokenize_LanguageTokensTokenMap_StreamWithLoremIpsum_TokenQueue)
 {
