@@ -5,11 +5,35 @@
 
 #include "Parser/Tokenizer.h"
 
-using TokenMap = std::map<std::string, std::string>;
+namespace
+{
+    enum class TokenType1
+    {
+        NON_LINE_BREAKER,
+        DIGIT,
+        NON_DIGIT,
+    };
+
+    enum class TokenType2
+    {
+        SHORT_TOKEN,
+        LONG_TOKEN,
+    };
+
+    enum class TokenType3
+    {
+        FIRST_WORD,
+        WORD,
+        INTEGER,
+        REAL,
+        PUNCTUATION,
+        WHITESPACE,
+    };
+} // namespace
 
 TEST(TokenizerTest, Tokenize_EmptyTokenMap_AnyStream_EmptyOptionalTokenQueue)
 {
-    const auto tokenizer = Tokenizer();
+    const auto tokenizer = Tokenizer<TokenType1, std::string>();
 
     auto stream1 = std::stringstream("");
     auto stream2 = std::stringstream("a");
@@ -41,13 +65,15 @@ TEST(TokenizerTest, Tokenize_EmptyTokenMap_AnyStream_EmptyOptionalTokenQueue)
     ASSERT_FALSE(tokens.has_value());
 }
 
-TEST(TokenizerTest,
-     Tokenize_SingleEntryTokenMap_StreamWithTokenInTheBeggining_TokenQueue)
+TEST(
+    TokenizerTest,
+    Tokenize_SingleStringEntryTokenMap_StreamWithTokenInTheBeggining_TokenQueue)
 {
-    const auto type  = std::string("Any character except line terminators");
+    const auto type  = TokenType1::NON_LINE_BREAKER;
     const auto regex = std::string(".");
 
-    const auto token_map = TokenMap({ { type, regex } });
+    const auto token_map =
+        std::map<TokenType1, std::string>({ { type, regex } });
     const auto tokenizer = Tokenizer(token_map);
 
     auto stream1 = std::stringstream("\t");
@@ -98,10 +124,11 @@ TEST(
     TokenizerTest,
     Tokenize_SingleEntryTokenMap_StreamWithTokenNotInTheBeggining_EmptyOptionalTokenQueue)
 {
-    const auto type  = std::string("Any character except line terminators");
+    const auto type  = TokenType1::NON_LINE_BREAKER;
     const auto regex = std::string(".");
 
-    const auto token_map = TokenMap({ { type, regex } });
+    const auto token_map =
+        std::map<TokenType1, std::string>({ { type, regex } });
     const auto tokenizer = Tokenizer(token_map);
 
     auto stream1 = std::stringstream("\n\t");
@@ -137,12 +164,13 @@ TEST(
 TEST(TokenizerTest,
      Tokenize_TwoEntriesTokenMap_StreamWithTokensInTheBeggining_TokenQueue)
 {
-    const auto type1  = std::string("Any non-digit character");
+    const auto type1  = TokenType1::NON_DIGIT;
     const auto regex1 = std::string("\\D");
-    const auto type2  = std::string("Any digit");
+    const auto type2  = TokenType1::DIGIT;
     const auto regex2 = std::string("\\d");
 
-    const auto token_map = TokenMap({ { type1, regex1 }, { type2, regex2 } });
+    const auto token_map = std::map<TokenType1, std::string>(
+        { { type1, regex1 }, { type2, regex2 } });
     const auto tokenizer = Tokenizer(token_map);
 
     auto stream1 = std::stringstream("\t");
@@ -217,12 +245,13 @@ TEST(
     TokenizerTest,
     Tokenize_TwoAmbiguousEntriesTokenMap_StreamWithTokenInTheBeggining_EmptyOptionalTokenQueue)
 {
-    const auto type1  = std::string("Any character except line terminators");
+    const auto type1  = TokenType1::NON_LINE_BREAKER;
     const auto regex1 = std::string(".");
-    const auto type2  = std::string("Any digit");
+    const auto type2  = TokenType1::DIGIT;
     const auto regex2 = std::string("\\d");
 
-    const auto token_map = TokenMap({ { type1, regex1 }, { type2, regex2 } });
+    const auto token_map = std::map<TokenType1, std::string>(
+        { { type1, regex1 }, { type2, regex2 } });
     const auto tokenizer = Tokenizer(token_map);
 
     auto stream = std::stringstream("1");
@@ -235,12 +264,13 @@ TEST(
     TokenizerTest,
     Tokenize_TwoSimilarEntriesTokenMap_StreamWithTokenInTheBeggining_LongestTokenTokenQueue)
 {
-    const auto type1  = std::string("Short token");
+    const auto type1  = TokenType2::SHORT_TOKEN;
     const auto regex1 = std::string("a");
-    const auto type2  = std::string("Long token");
+    const auto type2  = TokenType2::LONG_TOKEN;
     const auto regex2 = std::string("aaaaaaaaaa");
 
-    const auto token_map = TokenMap({ { type1, regex1 }, { type2, regex2 } });
+    const auto token_map = std::map<TokenType2, std::string>(
+        { { type1, regex1 }, { type2, regex2 } });
     const auto tokenizer = Tokenizer(token_map);
 
     auto stream = std::stringstream("aaaaaaaaaa");
@@ -248,33 +278,34 @@ TEST(
     auto tokens = tokenizer.Tokenize(stream);
     ASSERT_TRUE(tokens.has_value());
     ASSERT_EQ(1, tokens->size());
-    EXPECT_EQ("Long token", tokens->front().type);
+    EXPECT_EQ(type2, tokens->front().type);
     EXPECT_EQ("aaaaaaaaaa", tokens->front().value);
 }
 
 TEST(TokenizerTest,
      Tokenize_LanguageTokensTokenMap_StreamWithLoremIpsum_TokenQueue)
 {
-    const auto first_word_type   = std::string("First word in the sentance");
+    const auto first_word_type   = TokenType3::FIRST_WORD;
     const auto first_word_regex  = std::string("[A-Z][a-z]*");
-    const auto word_type         = std::string("Word of a sentance");
+    const auto word_type         = TokenType3::WORD;
     const auto word_regex        = std::string("[a-z][a-z]*");
-    const auto integer_type      = std::string("Integer number");
+    const auto integer_type      = TokenType3::INTEGER;
     const auto integer_regex     = std::string("-?[1-9][0-9]*");
-    const auto real_type         = std::string("Real number");
+    const auto real_type         = TokenType3::REAL;
     const auto real_regex        = std::string("-?([1-9][0-9]*|0).[0-9]*");
-    const auto punctuation_type  = std::string("Punctuation mark");
+    const auto punctuation_type  = TokenType3::PUNCTUATION;
     const auto punctuation_regex = std::string(
         "(\\.\\.\\.)|[\\.,;:\\/\\\\()\\[\\]\\{\\}<>!@#$%\\^&*\\-=_+`~'\"]");
-    const auto whitespace_type  = std::string("Whitespace");
+    const auto whitespace_type  = TokenType3::WHITESPACE;
     const auto whitespace_regex = std::string("\\s");
 
-    const auto token_map = TokenMap({ { first_word_type, first_word_regex },
-                                      { word_type, word_regex },
-                                      { integer_type, integer_regex },
-                                      { real_type, real_regex },
-                                      { punctuation_type, punctuation_regex },
-                                      { whitespace_type, whitespace_regex } });
+    const auto token_map = std::map<TokenType3, std::string>(
+        { { first_word_type, first_word_regex },
+          { word_type, word_regex },
+          { integer_type, integer_regex },
+          { real_type, real_regex },
+          { punctuation_type, punctuation_regex },
+          { whitespace_type, whitespace_regex } });
     const auto tokenizer = Tokenizer(token_map);
 
     auto stream = std::stringstream(
@@ -349,4 +380,22 @@ TEST(TokenizerTest,
 
     EXPECT_EQ(punctuation_type, tokens->front().type);
     EXPECT_EQ(".", tokens->front().value);
+}
+
+TEST(TokenizerTest,
+     Tokenize_SingleRegexEntryTokenMap_StreamWithTokenInTheBeggining_TokenQueue)
+{
+    const auto type  = TokenType1::NON_LINE_BREAKER;
+    const auto regex = std::regex(".");
+
+    const auto token_map =
+        std::map<TokenType1, std::regex>({ { type, regex } });
+    const auto tokenizer = Tokenizer(token_map);
+
+    auto stream1 = std::stringstream("\t");
+
+    auto tokens = tokenizer.Tokenize(stream1);
+    ASSERT_TRUE(tokens.has_value());
+    EXPECT_EQ(type, tokens->front().type);
+    EXPECT_EQ("\t", tokens->front().value);
 }
