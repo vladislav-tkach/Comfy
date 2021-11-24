@@ -1,11 +1,13 @@
+#include "Parser/Tokenizer.hpp"
+
+#include "Parser/Token.hpp"
+#include "Parser/TokenizerExceptions.h"
+
 #include "gtest/gtest.h"
+
 #include <map>
 #include <sstream>
 #include <string>
-
-#include "Parser/Token.h"
-#include "Parser/Tokenizer.h"
-#include "Parser/TokenizerExceptions.h"
 
 namespace
 {
@@ -31,11 +33,17 @@ namespace
         PUNCTUATION,
         WHITESPACE,
     };
+
+    enum class TokenType4
+    {
+        DIGIT,
+        ERROR,
+    };
 } // namespace
 
 TEST(TokenizerTest, Tokenize_EmptyTokenMap_EmptyStream_EmptyQueue)
 {
-    const auto tokenizer = Tokenizer<TokenType1, std::string>();
+    const auto tokenizer = Tokenizer<TokenType1>();
 
     auto stream = std::stringstream("");
 
@@ -47,7 +55,7 @@ TEST(TokenizerTest, Tokenize_EmptyTokenMap_EmptyStream_EmptyQueue)
 TEST(TokenizerTest,
      Tokenize_EmptyTokenMap_AnyStream_ThrowsUnknownTokenTypeException)
 {
-    const auto tokenizer = Tokenizer<TokenType1, std::string>();
+    const auto tokenizer = Tokenizer<TokenType1>();
 
     auto stream1 = std::stringstream("a");
     auto stream2 = std::stringstream("1");
@@ -294,8 +302,8 @@ TEST(
 
     auto stream = std::stringstream("1");
 
-    ASSERT_THROW(auto tokens = tokenizer.Tokenize(stream),
-                 AmbiguousTokenException);
+    ASSERT_THROW(
+        auto tokens = tokenizer.Tokenize(stream), AmbiguousTokenException);
 }
 
 TEST(
@@ -346,8 +354,8 @@ TEST(TokenizerTest,
           { whitespace_type, whitespace_regex } });
     const auto tokenizer = Tokenizer(token_map);
 
-    auto stream = std::stringstream(
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
+    auto stream = std::stringstream("Lorem ipsum dolor sit amet, consectetur "
+                                    "adipiscing elit.");
 
     auto tokens = tokenizer.Tokenize(stream);
 
@@ -432,11 +440,36 @@ TEST(TokenizerTest,
         std::map<TokenType1, std::regex>({ { type, regex } });
     const auto tokenizer = Tokenizer(token_map);
 
-    auto stream1 = std::stringstream("\t");
+    auto stream = std::stringstream("\t");
 
-    auto tokens = tokenizer.Tokenize(stream1);
+    auto tokens = tokenizer.Tokenize(stream);
     EXPECT_EQ(type, tokens.front().type);
     EXPECT_EQ("\t", tokens.front().value);
+    tokens.pop();
+    ASSERT_TRUE(tokens.empty());
+}
+
+TEST(
+    TokenizerTest,
+    TokenizeWithErrorTokenType_SingleRegexEntryTokenMap_StreamWithTokenInTheBeggining_TokenQueue)
+{
+    const auto type       = TokenType4::DIGIT;
+    const auto regex      = std::regex("\\d");
+    const auto error_type = TokenType4::ERROR;
+
+    const auto token_map =
+        std::map<TokenType4, std::regex>({ { type, regex } });
+    const auto tokenizer = Tokenizer(token_map);
+
+    auto stream = std::stringstream("4b");
+
+    auto tokens = tokenizer.Tokenize(stream, error_type);
+    ASSERT_FALSE(tokens.empty());
+    EXPECT_EQ(type, tokens.front().type);
+    EXPECT_EQ("4", tokens.front().value);
+    tokens.pop();
+    EXPECT_EQ(error_type, tokens.front().type);
+    EXPECT_EQ("b", tokens.front().value);
     tokens.pop();
     ASSERT_TRUE(tokens.empty());
 }

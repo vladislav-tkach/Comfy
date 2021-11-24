@@ -12,7 +12,7 @@ template<typename TEnum>
 requires IsEnum<TEnum>
 struct Token final
 {
-    TEnum       type;
+    TEnum type;
     std::string value;
 };
 
