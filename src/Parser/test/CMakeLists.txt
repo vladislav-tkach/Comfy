@@ -8,6 +8,7 @@ target_link_libraries(${TargetName}
 PUBLIC
 	gtest
 	gtest_main
+	gmock
 	Parser
 )
 

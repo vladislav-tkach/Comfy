@@ -1,7 +1,6 @@
 #ifndef COMFY_TOKEN_H
 #define COMFY_TOKEN_H
 
-#include <concepts>
 #include <string>
 #include <type_traits>
 
@@ -14,6 +13,8 @@ struct Token final
 {
     TEnum type;
     std::string value;
+
+    bool operator==(const Token& i_other) const = default;
 };
 
 #endif

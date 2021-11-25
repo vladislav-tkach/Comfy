@@ -4,7 +4,6 @@
 #include "Parser/Token.hpp"
 #include "Parser/TokenizerExceptions.h"
 
-#include <concepts>
 #include <cstddef>
 #include <format>
 #include <istream>
@@ -30,6 +29,11 @@ public:
     template<typename TRegex>
     requires IsStringOrRegex<TRegex>
     explicit Tokenizer(const std::map<TTokenType, TRegex>& i_token_map);
+
+    [[nodiscard]] std::queue<Token<TTokenType>> Tokenize(
+        const std::string& i_string) const;
+    [[nodiscard]] std::queue<Token<TTokenType>> Tokenize(
+        const std::string& i_string, TTokenType i_error_type) const;
 
     std::queue<Token<TTokenType>> Tokenize(std::istream& i_stream) const;
     std::queue<Token<TTokenType>> Tokenize(std::istream& i_stream,
@@ -67,25 +71,19 @@ static constexpr std::size_t min_l1_cache_size = 0x2000;
 
 template<typename TTokenType>
 requires IsEnum<TTokenType>
-inline std::queue<Token<TTokenType>> Tokenizer<TTokenType>::Tokenize(
-    std::istream& i_stream) const
+[[nodiscard]] inline std::queue<Token<TTokenType>> Tokenizer<
+    TTokenType>::Tokenize(const std::string& i_string) const
 {
     auto tokens = std::queue<Token<TTokenType>>();
-    auto buffer = std::string(min_l1_cache_size, '\0');
 
-    while (!i_stream.eof()) {
-        i_stream.read(&buffer[0], min_l1_cache_size);
+    auto begin = i_string.begin();
+    auto end   = i_string.end();
 
-        auto begin = buffer.begin();
-        auto end   = begin;
-        std::advance(end, i_stream.gcount());
+    while (begin != end) {
+        const auto token = GetFirstToken(begin, end);
 
-        while (begin != end) {
-            const auto token = GetFirstToken(begin, end);
-
-            tokens.push(token);
-            std::advance(begin, token.value.size());
-        }
+        tokens.push(token);
+        std::advance(begin, token.value.size());
     }
 
     return tokens;
@@ -93,25 +91,20 @@ inline std::queue<Token<TTokenType>> Tokenizer<TTokenType>::Tokenize(
 
 template<typename TTokenType>
 requires IsEnum<TTokenType>
-inline std::queue<Token<TTokenType>> Tokenizer<TTokenType>::Tokenize(
-    std::istream& i_stream, TTokenType i_error_type) const
+[[nodiscard]] inline std::queue<Token<TTokenType>> Tokenizer<
+    TTokenType>::Tokenize(const std::string& i_string,
+                          TTokenType i_error_type) const
 {
     auto tokens = std::queue<Token<TTokenType>>();
-    auto buffer = std::string(min_l1_cache_size, '\0');
 
-    while (!i_stream.eof()) {
-        i_stream.read(&buffer[0], min_l1_cache_size);
+    auto begin = i_string.begin();
+    auto end   = i_string.end();
 
-        auto begin = buffer.begin();
-        auto end   = begin;
-        std::advance(end, i_stream.gcount());
+    while (begin != end) {
+        const auto token = GetFirstToken(begin, end, i_error_type);
 
-        while (begin != end) {
-            const auto token = GetFirstToken(begin, end, i_error_type);
-
-            tokens.push(token);
-            std::advance(begin, token.value.size());
-        }
+        tokens.push(token);
+        std::advance(begin, token.value.size());
     }
 
     return tokens;
@@ -142,7 +135,7 @@ inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
         else if (token_size == token.value.size())
             throw AmbiguousTokenException(std::format(
                 "Ambiguous token types' ID's: \'{}\' and \'{}\' of "
-                "the \'{}\' for the series of characters: \'{}\'",
+                "the \'{}\' for the series of characters: \'{}\'.",
                 static_cast<std::size_t>(token.type),
                 static_cast<std::size_t>(type), typeid(TTokenType).name(),
                 std::string(matches[0].first, matches[0].second)));
@@ -152,7 +145,7 @@ inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
         return token;
     else
         throw UnknownTokenTypeException(std::format(
-            "Unknown token type for the series of characters: \'{}\'",
+            "Unknown token type for the series of characters: \'{}\'.",
             std::string(i_begin, i_end)));
 }
 
@@ -187,7 +180,7 @@ inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
         else if (token_size == token.value.size())
             throw AmbiguousTokenException(std::format(
                 "Ambiguous token types' ID's: \'{}\' and \'{}\' of "
-                "the \'{}\' for the series of characters: \'{}\'",
+                "the \'{}\' for the series of characters: \'{}\'.",
                 static_cast<std::size_t>(token.type),
                 static_cast<std::size_t>(type), typeid(TTokenType).name(),
                 std::string(matches[0].first, matches[0].second)));
