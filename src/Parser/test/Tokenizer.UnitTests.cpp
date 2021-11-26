@@ -397,13 +397,34 @@ TEST(TokenizerTest,
         std::map<TokenType1, std::regex>({ { type, regex } });
     const auto tokenizer = Tokenizer(token_map);
 
-    const auto string = std::string("\t");
+    const auto string1 = std::string("\t");
+    const auto string2 = std::string("a");
+    const auto string3 = std::string("1");
+    const auto string4 = std::string(".");
 
-    const auto actual_tokens   = tokenizer.Tokenize(string);
-    const auto expected_tokens = std::queue<Token<TokenType1>>({
+    const auto actual_tokens1   = tokenizer.Tokenize(string1);
+    const auto expected_tokens1 = std::queue<Token<TokenType1>>({
         { type, "\t" },
     });
-    ASSERT_THAT(actual_tokens, QueueEq(expected_tokens));
+    ASSERT_THAT(actual_tokens1, QueueEq(expected_tokens1));
+
+    const auto actual_tokens2   = tokenizer.Tokenize(string2);
+    const auto expected_tokens2 = std::queue<Token<TokenType1>>({
+        { type, "a" },
+    });
+    ASSERT_THAT(actual_tokens2, QueueEq(expected_tokens2));
+
+    const auto actual_tokens3   = tokenizer.Tokenize(string3);
+    const auto expected_tokens3 = std::queue<Token<TokenType1>>({
+        { type, "1" },
+    });
+    ASSERT_THAT(actual_tokens3, QueueEq(expected_tokens3));
+
+    const auto actual_tokens4   = tokenizer.Tokenize(string4);
+    const auto expected_tokens4 = std::queue<Token<TokenType1>>({
+        { type, "." },
+    });
+    ASSERT_THAT(actual_tokens4, QueueEq(expected_tokens4));
 }
 
 TEST(

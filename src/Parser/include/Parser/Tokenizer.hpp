@@ -10,14 +10,11 @@
 #include <iterator>
 #include <map>
 #include <queue>
+#include <ranges>
 #include <regex>
 #include <string>
+#include <string_view>
 #include <type_traits>
-#include <utility>
-
-template<typename T>
-concept IsStringOrRegex =
-    std::is_same_v<T, std::string> || std::is_same_v<T, std::regex>;
 
 template<typename TTokenType>
 requires IsEnum<TTokenType>
@@ -26,64 +23,54 @@ class Tokenizer final
 public:
     Tokenizer() = default;
 
-    template<typename TRegex>
-    requires IsStringOrRegex<TRegex>
-    explicit Tokenizer(const std::map<TTokenType, TRegex>& i_token_map);
+    explicit Tokenizer(const std::map<TTokenType, std::regex>& i_token_map);
+    explicit Tokenizer(const std::map<TTokenType, std::string>& i_token_map);
 
     [[nodiscard]] std::queue<Token<TTokenType>> Tokenize(
-        const std::string& i_string) const;
+        std::string_view i_string_view) const;
     [[nodiscard]] std::queue<Token<TTokenType>> Tokenize(
-        const std::string& i_string, TTokenType i_error_type) const;
-
-    std::queue<Token<TTokenType>> Tokenize(std::istream& i_stream) const;
-    std::queue<Token<TTokenType>> Tokenize(std::istream& i_stream,
-                                           TTokenType i_error_type) const;
+        std::string_view i_string_view, TTokenType i_error_type) const;
 
 private:
-    Token<TTokenType> GetFirstToken(
-        const std::string::const_iterator& i_begin,
-        const std::string::const_iterator& i_end) const;
-    Token<TTokenType> GetFirstToken(const std::string::const_iterator& i_begin,
-                                    const std::string::const_iterator& i_end,
-                                    TTokenType i_error_type) const;
+    [[nodiscard]] Token<TTokenType> GetFirstToken(
+        std::string_view i_string_view) const;
+    [[nodiscard]] Token<TTokenType> GetFirstToken(
+        std::string_view i_string_view, TTokenType i_error_type) const;
 
     std::map<std::size_t, std::regex> m_token_map;
 };
 
 template<typename TTokenType>
 requires IsEnum<TTokenType>
-template<typename TRegex>
-requires IsStringOrRegex<TRegex>
 inline Tokenizer<TTokenType>::Tokenizer(
-    const std::map<TTokenType, TRegex>& i_token_map)
+    const std::map<TTokenType, std::regex>& i_token_map)
 {
-    if constexpr (std::is_same_v<TRegex, std::string>)
-        for (const auto& [type, regex_string] : i_token_map)
-            m_token_map[static_cast<std::size_t>(type)] =
-                std::regex(regex_string, std::regex::collate);
-
-    else
-        for (const auto& [type, regex_string] : i_token_map)
-            m_token_map[static_cast<std::size_t>(type)] = regex_string;
+    for (const auto& [type, regex_string] : i_token_map)
+        m_token_map[static_cast<std::size_t>(type)] = regex_string;
 }
 
-static constexpr std::size_t min_l1_cache_size = 0x2000;
+template<typename TTokenType>
+requires IsEnum<TTokenType>
+inline Tokenizer<TTokenType>::Tokenizer(
+    const std::map<TTokenType, std::string>& i_token_map)
+{
+    for (const auto& [type, regex_string] : i_token_map)
+        m_token_map[static_cast<std::size_t>(type)] =
+            std::regex(regex_string, std::regex::collate);
+}
 
 template<typename TTokenType>
 requires IsEnum<TTokenType>
 [[nodiscard]] inline std::queue<Token<TTokenType>> Tokenizer<
-    TTokenType>::Tokenize(const std::string& i_string) const
+    TTokenType>::Tokenize(std::string_view i_string_view) const
 {
     auto tokens = std::queue<Token<TTokenType>>();
 
-    auto begin = i_string.begin();
-    auto end   = i_string.end();
-
-    while (begin != end) {
-        const auto token = GetFirstToken(begin, end);
+    while (!i_string_view.empty()) {
+        const auto token = GetFirstToken(i_string_view);
 
         tokens.push(token);
-        std::advance(begin, token.value.size());
+        i_string_view.remove_prefix(token.value.size());
     }
 
     return tokens;
@@ -92,19 +79,16 @@ requires IsEnum<TTokenType>
 template<typename TTokenType>
 requires IsEnum<TTokenType>
 [[nodiscard]] inline std::queue<Token<TTokenType>> Tokenizer<
-    TTokenType>::Tokenize(const std::string& i_string,
+    TTokenType>::Tokenize(std::string_view i_string_view,
                           TTokenType i_error_type) const
 {
     auto tokens = std::queue<Token<TTokenType>>();
 
-    auto begin = i_string.begin();
-    auto end   = i_string.end();
-
-    while (begin != end) {
-        const auto token = GetFirstToken(begin, end, i_error_type);
+    while (!i_string_view.empty()) {
+        const auto token = GetFirstToken(i_string_view, i_error_type);
 
         tokens.push(token);
-        std::advance(begin, token.value.size());
+        i_string_view.remove_prefix(token.value.size());
     }
 
     return tokens;
@@ -112,16 +96,16 @@ requires IsEnum<TTokenType>
 
 template<typename TTokenType>
 requires IsEnum<TTokenType>
-inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
-    const std::string::const_iterator& i_begin,
-    const std::string::const_iterator& i_end) const
+[[nodiscard]] inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
+    std::string_view i_string_view) const
 {
     auto token = Token<TTokenType>();
 
     for (const auto& [type, regex] : m_token_map) {
-        auto matches = std::smatch();
+        auto matches = std::match_results<std::string_view::const_iterator>();
 
-        std::regex_search(i_begin, i_end, matches, regex,
+        std::regex_search(i_string_view.begin(), i_string_view.end(), matches,
+                          regex,
                           std::regex_constants::match_continuous |
                               std::regex_constants::match_not_null);
 
@@ -146,26 +130,25 @@ inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
     else
         throw UnknownTokenTypeException(std::format(
             "Unknown token type for the series of characters: \'{}\'.",
-            std::string(i_begin, i_end)));
+            std::string(i_string_view.begin(), i_string_view.end())));
 }
 
 template<typename TTokenType>
 requires IsEnum<TTokenType>
-inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
-    const std::string::const_iterator& i_begin,
-    const std::string::const_iterator& i_end, TTokenType i_error_type) const
+[[nodiscard]] inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
+    std::string_view i_string_view, TTokenType i_error_type) const
 {
     auto token               = Token<TTokenType>();
-    auto nearest_token_begin = i_end;
+    auto nearest_token_begin = i_string_view.end();
 
     for (const auto& [type, regex] : m_token_map) {
-        auto matches = std::smatch();
+        auto matches = std::match_results<std::string_view::const_iterator>();
 
-        std::regex_search(i_begin, i_end, matches, regex,
-                          std::regex_constants::match_not_null);
+        std::regex_search(i_string_view.begin(), i_string_view.end(), matches,
+                          regex, std::regex_constants::match_not_null);
 
         if (matches.size() == 0) continue;
-        if (matches[0].first != i_begin) {
+        if (matches[0].first != i_string_view.begin()) {
             if (matches[0].first < nearest_token_begin) {
                 nearest_token_begin = matches[0].first;
             }
@@ -189,7 +172,8 @@ inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
     if (token.value != "")
         return token;
     else
-        return { i_error_type, std::string(i_begin, nearest_token_begin) };
+        return { i_error_type,
+                 std::string(i_string_view.begin(), nearest_token_begin) };
 }
 
 #endif
