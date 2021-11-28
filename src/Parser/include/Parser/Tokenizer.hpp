@@ -55,8 +55,7 @@ inline Tokenizer<TTokenType>::Tokenizer(
     const std::map<TTokenType, std::string>& i_token_map)
 {
     for (const auto& [type, regex_string] : i_token_map)
-        m_token_map[static_cast<std::size_t>(type)] =
-            std::regex(regex_string, std::regex::collate);
+        m_token_map[static_cast<std::size_t>(type)] = std::regex(regex_string);
 }
 
 template<typename TTokenType>
