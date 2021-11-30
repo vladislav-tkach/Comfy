@@ -16,9 +16,9 @@
 using ::testing::IsEmpty;
 using ::testing::PrintToString;
 
-template <typename TEnum>
-requires IsEnum<TEnum> std::ostream& operator<<(
-    std::ostream& o_stream, const std::queue<Token<TEnum>>& i_token_queue)
+template <IsToken TToken>
+std::ostream& operator<<(std::ostream& o_stream,
+                         const std::queue<TToken>& i_token_queue)
 {
     auto queue_copy = i_token_queue;
 
@@ -60,6 +60,10 @@ MATCHER_P(QueueEq, i_queue, PrintToString(i_queue))
 
 namespace
 {
+    enum class TokenType0
+    {
+    };
+
     enum class TokenType1
     {
         NON_LINE_BREAKER,
@@ -92,7 +96,7 @@ namespace
 
 TEST(TokenizerTest, Tokenize_EmptyTokenMap_EmptyString_EmptyQueue)
 {
-    const auto tokenizer = Tokenizer<TokenType1>();
+    const auto tokenizer = Tokenizer<Token<TokenType0>>();
 
     const auto string = std::string("");
 
@@ -104,7 +108,7 @@ TEST(TokenizerTest, Tokenize_EmptyTokenMap_EmptyString_EmptyQueue)
 TEST(TokenizerTest,
      Tokenize_EmptyTokenMap_AnyString_ThrowsUnknownTokenTypeException)
 {
-    const auto tokenizer = Tokenizer<TokenType1>();
+    const auto tokenizer = Tokenizer<Token<TokenType1>>();
 
     const auto string1 = std::string("a");
     const auto string2 = std::string("1");
