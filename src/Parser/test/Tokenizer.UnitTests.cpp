@@ -16,7 +16,7 @@
 using ::testing::IsEmpty;
 using ::testing::PrintToString;
 
-template<typename TEnum>
+template <typename TEnum>
 requires IsEnum<TEnum> std::ostream& operator<<(
     std::ostream& o_stream, const std::queue<Token<TEnum>>& i_token_queue)
 {
