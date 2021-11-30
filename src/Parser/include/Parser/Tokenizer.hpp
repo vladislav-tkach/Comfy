@@ -16,7 +16,7 @@
 #include <string_view>
 #include <type_traits>
 
-template<typename TTokenType>
+template <typename TTokenType>
 requires IsEnum<TTokenType>
 class Tokenizer final
 {
@@ -40,7 +40,7 @@ private:
     std::map<std::size_t, std::regex> m_token_map;
 };
 
-template<typename TTokenType>
+template <typename TTokenType>
 requires IsEnum<TTokenType>
 inline Tokenizer<TTokenType>::Tokenizer(
     const std::map<TTokenType, std::regex>& i_token_map)
@@ -49,7 +49,7 @@ inline Tokenizer<TTokenType>::Tokenizer(
         m_token_map[static_cast<std::size_t>(type)] = regex_string;
 }
 
-template<typename TTokenType>
+template <typename TTokenType>
 requires IsEnum<TTokenType>
 inline Tokenizer<TTokenType>::Tokenizer(
     const std::map<TTokenType, std::string>& i_token_map)
@@ -58,7 +58,7 @@ inline Tokenizer<TTokenType>::Tokenizer(
         m_token_map[static_cast<std::size_t>(type)] = std::regex(regex_string);
 }
 
-template<typename TTokenType>
+template <typename TTokenType>
 requires IsEnum<TTokenType>
 [[nodiscard]] inline std::queue<Token<TTokenType>> Tokenizer<
     TTokenType>::Tokenize(std::string_view i_string_view) const
@@ -75,7 +75,7 @@ requires IsEnum<TTokenType>
     return tokens;
 }
 
-template<typename TTokenType>
+template <typename TTokenType>
 requires IsEnum<TTokenType>
 [[nodiscard]] inline std::queue<Token<TTokenType>> Tokenizer<
     TTokenType>::Tokenize(std::string_view i_string_view,
@@ -93,7 +93,7 @@ requires IsEnum<TTokenType>
     return tokens;
 }
 
-template<typename TTokenType>
+template <typename TTokenType>
 requires IsEnum<TTokenType>
 [[nodiscard]] inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
     std::string_view i_string_view) const
@@ -132,7 +132,7 @@ requires IsEnum<TTokenType>
             std::string(i_string_view.begin(), i_string_view.end())));
 }
 
-template<typename TTokenType>
+template <typename TTokenType>
 requires IsEnum<TTokenType>
 [[nodiscard]] inline Token<TTokenType> Tokenizer<TTokenType>::GetFirstToken(
     std::string_view i_string_view, TTokenType i_error_type) const

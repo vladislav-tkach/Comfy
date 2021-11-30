@@ -4,10 +4,10 @@
 #include <string>
 #include <type_traits>
 
-template<typename T>
+template <typename T>
 concept IsEnum = std::is_enum_v<T>;
 
-template<typename TEnum>
+template <typename TEnum>
 requires IsEnum<TEnum>
 struct Token final
 {
