@@ -6,7 +6,6 @@ add_executable(${TargetName} ${SRC_FILES})
 
 target_link_libraries(${TargetName}
 PUBLIC
-	gtest
 	gtest_main
 	gmock
 	Parser
