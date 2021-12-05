@@ -3,6 +3,8 @@
 
 #include <stdexcept>
 
+namespace Comfy
+{
 class AmbiguousTokenException final : public std::runtime_error
 {
 public:
@@ -22,5 +24,6 @@ public:
 
     virtual const char* what() const noexcept;
 };
+} // namespace Comfy
 
 #endif

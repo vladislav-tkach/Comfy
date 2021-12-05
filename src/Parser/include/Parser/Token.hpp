@@ -4,6 +4,8 @@
 #include <string>
 #include <type_traits>
 
+namespace Comfy
+{
 template <typename T>
 concept IsEnum = std::is_enum_v<T>;
 
@@ -13,7 +15,6 @@ struct Token final
     using enum_type = TEnum;
 
     TEnum type;
-    std::string type_string;
     std::string value;
 
     bool operator==(const Token& i_other) const = default;
@@ -21,5 +22,6 @@ struct Token final
 
 template <typename T>
 concept IsToken = std::is_same_v<T, Token<typename T::enum_type>>;
+} // namespace Comfy
 
 #endif
