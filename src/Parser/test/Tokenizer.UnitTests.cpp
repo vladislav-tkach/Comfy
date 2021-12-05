@@ -13,35 +13,41 @@
 #include <string>
 #include <type_traits>
 
-using ::testing::IsEmpty;
-using ::testing::PrintToString;
+namespace Comfy
+{
+template <IsEnum TEnum>
+std::ostream& operator<<(std::ostream& o_stream, const Token<TEnum>& i_token)
+{
+    o_stream << "{\'" << static_cast<std::size_t>(i_token.type) << "\', \'"
+             << i_token.value << "\'}";
 
-template <IsToken TToken>
+    return o_stream;
+}
+
+template <typename T>
 std::ostream& operator<<(std::ostream& o_stream,
-                         const std::queue<TToken>& i_token_queue)
+                         const std::queue<T>& i_token_queue)
 {
     auto queue_copy = i_token_queue;
 
     if (queue_copy.empty()) o_stream << "{}";
 
-    o_stream << "{ ";
+    o_stream << "{";
 
     while (queue_copy.size() > 1) {
-        o_stream << "{ " << static_cast<std::size_t>(queue_copy.front().type)
-                 << ", \"" << queue_copy.front().value << "\" }, ";
+        o_stream << queue_copy.front() << ", ";
 
         queue_copy.pop();
     }
 
-    o_stream << "{ " << static_cast<std::size_t>(queue_copy.front().type)
-             << ", \"" << queue_copy.front().value << "\" }";
+    o_stream << queue_copy.front();
 
-    o_stream << " }";
+    o_stream << "}";
 
     return o_stream;
 }
 
-MATCHER_P(QueueEq, i_queue, PrintToString(i_queue))
+MATCHER_P(QueueEq, i_queue, ::testing::PrintToString(i_queue))
 {
     if (arg.size() != i_queue.size()) return false;
 
@@ -60,38 +66,38 @@ MATCHER_P(QueueEq, i_queue, PrintToString(i_queue))
 
 namespace
 {
-    enum class TokenType0
-    {
-    };
+enum class TokenType0
+{
+};
 
-    enum class TokenType1
-    {
-        NON_LINE_BREAKER,
-        DIGIT,
-        NON_DIGIT,
-    };
+enum class TokenType1
+{
+    NON_LINE_BREAKER,
+    DIGIT,
+    NON_DIGIT,
+};
 
-    enum class TokenType2
-    {
-        SHORT_TOKEN,
-        LONG_TOKEN,
-    };
+enum class TokenType2
+{
+    SHORT_TOKEN,
+    LONG_TOKEN,
+};
 
-    enum class TokenType3
-    {
-        FIRST_WORD,
-        WORD,
-        INTEGER,
-        REAL,
-        PUNCTUATION,
-        WHITESPACE,
-    };
+enum class TokenType3
+{
+    FIRST_WORD,
+    WORD,
+    INTEGER,
+    REAL,
+    PUNCTUATION,
+    WHITESPACE,
+};
 
-    enum class TokenType4
-    {
-        DIGIT,
-        ERROR,
-    };
+enum class TokenType4
+{
+    DIGIT,
+    ERROR,
+};
 } // namespace
 
 TEST(TokenizerTest, Tokenize_EmptyTokenMap_EmptyString_EmptyQueue)
@@ -102,7 +108,7 @@ TEST(TokenizerTest, Tokenize_EmptyTokenMap_EmptyString_EmptyQueue)
 
     const auto tokens = tokenizer.Tokenize(string);
 
-    ASSERT_THAT(tokens, IsEmpty());
+    ASSERT_THAT(tokens, ::testing::IsEmpty());
 }
 
 TEST(TokenizerTest,
@@ -452,3 +458,4 @@ TEST(
     });
     ASSERT_THAT(actual_tokens, QueueEq(expected_tokens));
 }
+} // namespace Comfy

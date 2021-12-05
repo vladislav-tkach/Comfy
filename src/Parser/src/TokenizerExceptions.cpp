@@ -1,5 +1,7 @@
 #include "Parser/TokenizerExceptions.h"
 
+namespace Comfy
+{
 AmbiguousTokenException::AmbiguousTokenException(const std::string& i_string)
     : std::runtime_error(i_string)
 {}
@@ -22,3 +24,4 @@ const char* UnknownTokenTypeException::what() const noexcept
 {
     return std::runtime_error::what();
 }
+} // namespace Comfy
