@@ -1,5 +1,5 @@
-#ifndef COMFY_TOKENIZER_H
-#define COMFY_TOKENIZER_H
+#ifndef COMFY_PARSER_TOKENIZER_H
+#define COMFY_PARSER_TOKENIZER_H
 
 #include "Parser/Token.hpp"
 #include "Parser/TokenizerExceptions.h"
